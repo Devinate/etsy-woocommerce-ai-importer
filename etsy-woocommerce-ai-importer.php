@@ -162,9 +162,9 @@ class Etsy_CSV_Importer {
                     <div class="form-field">
                         <label>
                             <input type="checkbox" name="import_categories" value="1" checked>
-                            Import categories from Etsy taxonomy
+                            Auto-assign to WooCommerce categories
                         </label>
-                        <p class="description">Intelligently matches product tags and title to existing categories.</p>
+                        <p class="description">Matches products to your existing categories based on product title and tags.</p>
                     </div>
 
                     <div class="form-field">
