@@ -168,14 +168,6 @@ class Etsy_CSV_Importer {
                     </div>
 
                     <div class="form-field">
-                        <label>
-                            <input type="checkbox" name="create_categories" value="1" checked>
-                            Create missing categories automatically
-                        </label>
-                        <p class="description">If a category doesn't exist, it will be created. Otherwise, only existing categories will be assigned.</p>
-                    </div>
-
-                    <div class="form-field">
                         <label for="default-category">Default Category (fallback):</label>
                         <select id="default-category" name="default_category">
                             <option value="">— None —</option>
@@ -308,7 +300,7 @@ class Etsy_CSV_Importer {
             'mark_digital' => isset($_POST['mark_digital']) && $_POST['mark_digital'] === '1',
             'draft_status' => isset($_POST['draft_status']) && $_POST['draft_status'] === '1',
             'import_categories' => isset($_POST['import_categories']) && $_POST['import_categories'] === '1',
-            'create_categories' => isset($_POST['create_categories']) && $_POST['create_categories'] === '1',
+            'create_categories' => false, // Disabled - Etsy CSV doesn't contain category data
             'default_category' => isset($_POST['default_category']) ? intval($_POST['default_category']) : 0,
         ];
 

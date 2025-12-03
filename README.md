@@ -65,8 +65,7 @@ The free tier includes ~30,000 API requests per month - more than enough for mos
 - **Import product images**: Download and attach images from Etsy (processed in background)
 - **Mark as digital/downloadable**: Set products as virtual and downloadable
 - **Import as drafts**: Create products as drafts for review before publishing
-- **Import categories**: Match products to WooCommerce categories
-- **Create missing categories**: Auto-create categories that don't exist
+- **Import categories**: Match products to WooCommerce categories using AI
 - **Default category**: Fallback category when no match is found
 
 ## How AI Categorization Works
