@@ -1,0 +1,22 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# Logs
+*.log
+
+# Composer (if added later)
+/vendor/
+composer.lock
+
+# Node (if added later)
+/node_modules/
+package-lock.json
+
+# Build artifacts
+*.zip
