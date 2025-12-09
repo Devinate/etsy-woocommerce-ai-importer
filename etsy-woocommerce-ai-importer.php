@@ -56,6 +56,45 @@ class Etsy_CSV_Importer {
 
         // Background image import action (using Action Scheduler).
         add_action( 'etsy_import_product_image', array( $this, 'process_single_image' ), 10, 3 );
+
+        // Register GraphQL field for WPGraphQL integration.
+        add_action( 'graphql_register_types', array( $this, 'register_graphql_fields' ) );
+    }
+
+    /**
+     * Register etsyUrl field with WPGraphQL.
+     */
+    public function register_graphql_fields() {
+        if ( ! function_exists( 'register_graphql_field' ) ) {
+            return;
+        }
+
+        // Register for all product types.
+        $product_types = array(
+            'SimpleProduct',
+            'VariableProduct',
+            'ExternalProduct',
+            'GroupProduct',
+            'Product',
+        );
+
+        foreach ( $product_types as $type ) {
+            register_graphql_field(
+                $type,
+                'etsyUrl',
+                array(
+                    'type'        => 'String',
+                    'description' => __( 'The Etsy listing URL for this product', 'etsy-woocommerce-ai-importer' ),
+                    'resolve'     => function ( $product ) {
+                        $product_id = $product->databaseId ?? $product->ID ?? null;
+                        if ( ! $product_id ) {
+                            return null;
+                        }
+                        return get_post_meta( $product_id, '_etsy_listing_url', true ) ?: null;
+                    },
+                )
+            );
+        }
     }
 
     /**
