@@ -180,3 +180,92 @@
     margin-left: 8px;
     vertical-align: middle;
 }
+
+/* AI Batch Processing Notice */
+.ai-batch-notice {
+    background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+    border: 1px solid #c4b5fd;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    color: #6b21a8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-batch-notice .dashicons {
+    color: #8b5cf6;
+    font-size: 18px;
+}
+
+.ai-batch-notice .batch-status {
+    background: #8b5cf6;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+/* AI Warning Highlight */
+.ai-timing-warning {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin-top: 16px;
+    color: #92400e;
+    font-size: 13px;
+}
+
+.ai-timing-warning .dashicons {
+    color: #f59e0b;
+    margin-right: 6px;
+}
+
+/* Bulk URL Update Section */
+#etsy-bulk-url-form .form-field {
+    margin-bottom: 20px;
+}
+
+#etsy-bulk-url-form label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+#etsy-bulk-url-form input[type="text"] {
+    margin-right: 10px;
+}
+
+.results-summary .stat-warning .stat-number {
+    color: #dba617;
+}
+
+.unmatched-list {
+    margin-top: 16px;
+    padding: 12px;
+    background: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 4px;
+}
+
+.unmatched-list ul {
+    margin: 8px 0 0 20px;
+    padding: 0;
+}
+
+.unmatched-list li {
+    color: #5d4037;
+    font-size: 12px;
+}
+
+/* Inline notice styling */
+.notice.inline {
+    padding: 8px 12px;
+}
+
+.notice.inline p {
+    margin: 0;
+}

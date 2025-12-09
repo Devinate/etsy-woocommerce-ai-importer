@@ -72,6 +72,7 @@
             formData.append('mark_digital', $('input[name="mark_digital"]').is(':checked') ? '1' : '0');
             formData.append('draft_status', $('input[name="draft_status"]').is(':checked') ? '1' : '0');
             formData.append('import_categories', $('input[name="import_categories"]').is(':checked') ? '1' : '0');
+            formData.append('skip_ai_categorized', $('input[name="skip_ai_categorized"]').is(':checked') ? '1' : '0');
             formData.append('create_categories', $('input[name="create_categories"]').is(':checked') ? '1' : '0');
             formData.append('default_category', $('#default-category').val());
 
@@ -157,6 +158,18 @@
                 updateProgress(displayPercent, 'Processing ' + data.current + ' of ' + data.total + '...');
             });
 
+            eventSource.addEventListener('batch_info', function(e) {
+                var data = JSON.parse(e.data);
+                if (data.enabled) {
+                    showBatchInfo(data.batch_size, data.total_batches);
+                }
+            });
+
+            eventSource.addEventListener('batch_progress', function(e) {
+                var data = JSON.parse(e.data);
+                updateBatchProgress(data.current_batch, data.total_batches);
+            });
+
             eventSource.addEventListener('error', function(e) {
                 var data = JSON.parse(e.data);
                 addLog('Error: ' + data.message, 'error');
@@ -201,6 +214,27 @@
             $log.scrollTop($log[0].scrollHeight);
         }
 
+        function showBatchInfo(batchSize, totalBatches) {
+            var $batchInfo = $('#ai-batch-info');
+            if (!$batchInfo.length) {
+                $batchInfo = $('<div id="ai-batch-info" class="ai-batch-notice"></div>');
+                $progress.find('h3').after($batchInfo);
+            }
+            $batchInfo.html(
+                '<span class="dashicons dashicons-info"></span> ' +
+                '<strong>AI Categorization:</strong> Processing ' + totalBatches + ' batches of ~' + batchSize + ' products each. ' +
+                '<span class="batch-status">Starting...</span>'
+            );
+            $batchInfo.show();
+        }
+
+        function updateBatchProgress(currentBatch, totalBatches) {
+            var $batchStatus = $('#ai-batch-info .batch-status');
+            if ($batchStatus.length) {
+                $batchStatus.text('Batch ' + currentBatch + ' of ' + totalBatches);
+            }
+        }
+
         function showResults(data) {
             var html = '<div class="stat stat-success">' +
                 '<span class="stat-number">' + data.imported + '</span>' +
@@ -242,6 +276,13 @@
                     '</div>';
             }
 
+            if (data.duration) {
+                html += '<div class="stat">' +
+                    '<span class="stat-number" style="font-size: 24px;">' + data.duration + '</span>' +
+                    '<span class="stat-label">Duration</span>' +
+                    '</div>';
+            }
+
             if (data.imported > 0 || data.updated > 0) {
                 html += '<p style="margin-top: 20px;">' +
                     '<a href="edit.php?post_type=product" class="button">View Products</a>' +
@@ -255,5 +296,132 @@
             $results.find('.results-summary').html(html);
             $results.show();
         }
+
+        // Toggle missing products list
+        $('#toggle-missing-list').on('click', function() {
+            $('#missing-products-list').slideToggle();
+        });
+
+        // Download product titles as CSV
+        $('#download-titles-csv').on('click', function() {
+            var titles = [];
+            $('#missing-products-list tbody tr').each(function() {
+                var title = $(this).find('code').text();
+                if (title) {
+                    titles.push(title);
+                }
+            });
+
+            if (titles.length === 0) {
+                alert('No products to export');
+                return;
+            }
+
+            // Create CSV content
+            var csv = 'TITLE,URL\n';
+            titles.forEach(function(title) {
+                // Escape quotes in title
+                var escapedTitle = '"' + title.replace(/"/g, '""') + '"';
+                csv += escapedTitle + ',\n';
+            });
+
+            // Download
+            var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement('a');
+            var url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'etsy_url_mapping_template.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // Bulk URL Update Form Handler
+        $('#etsy-bulk-url-form').on('submit', function(e) {
+            e.preventDefault();
+
+            var $status = $('#bulk-url-status');
+            var $button = $(this).find('button[type="submit"]');
+            var $results = $('#bulk-url-results');
+            var fileInput = $('#etsy-url-csv')[0];
+
+            if (!fileInput.files.length) {
+                $status.css('color', 'red').text('Please select a CSV file.');
+                return;
+            }
+
+            var file = fileInput.files[0];
+            if (!file.name.endsWith('.csv')) {
+                $status.css('color', 'red').text('Please select a valid CSV file.');
+                return;
+            }
+
+            $button.prop('disabled', true).text('Processing...');
+            $status.css('color', '#666').text('Matching products...');
+            $results.hide();
+
+            var formData = new FormData();
+            formData.append('action', 'etsy_bulk_update_urls');
+            formData.append('nonce', etsyImporter.nonce);
+            formData.append('url_csv_file', file);
+            formData.append('etsy_shop_name', $('#etsy-shop-name').val());
+
+            $.ajax({
+                url: etsyImporter.ajaxUrl,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        $status.css('color', 'green').text('✓ ' + response.data.message);
+
+                        var html = '<div class="stat stat-success">' +
+                            '<span class="stat-number">' + response.data.updated + '</span>' +
+                            '<span class="stat-label">Updated</span>' +
+                            '</div>';
+
+                        if (response.data.skipped > 0) {
+                            html += '<div class="stat">' +
+                                '<span class="stat-number">' + response.data.skipped + '</span>' +
+                                '<span class="stat-label">Skipped</span>' +
+                                '</div>';
+                        }
+
+                        if (response.data.notfound > 0) {
+                            html += '<div class="stat stat-warning">' +
+                                '<span class="stat-number">' + response.data.notfound + '</span>' +
+                                '<span class="stat-label">Not Found</span>' +
+                                '</div>';
+                        }
+
+                        if (response.data.errors && response.data.errors.length > 0) {
+                            html += '<div class="unmatched-list"><strong>Sample unmatched titles:</strong><ul>';
+                            response.data.errors.forEach(function(err) {
+                                html += '<li>' + err + '</li>';
+                            });
+                            html += '</ul></div>';
+                        }
+
+                        $results.find('.results-summary').html(html);
+                        $results.show();
+
+                        // Reload the page after 2 seconds to update the missing count
+                        setTimeout(function() {
+                            location.reload();
+                        }, 3000);
+                    } else {
+                        $status.css('color', 'red').text('✗ ' + (response.data.message || 'Update failed'));
+                    }
+                },
+                error: function() {
+                    $status.css('color', 'red').text('✗ Request failed');
+                },
+                complete: function() {
+                    $button.prop('disabled', false).text('Update Etsy URLs');
+                }
+            });
+        });
     });
 })(jQuery);
