@@ -3,7 +3,7 @@
  * Plugin Name: Etsy WooCommerce AI Importer
  * Plugin URI: https://wordpress.org/plugins/etsy-woocommerce-ai-importer/
  * Description: Import digital products from Etsy CSV exports into WooCommerce with AI-powered category matching using Hugging Face.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Devinate
  * Author URI: https://devinate.com/
  * License: GPL-2.0-or-later
@@ -15,10 +15,14 @@
  * Requires Plugins: woocommerce
  * WC requires at least: 8.0
  * WC tested up to: 10.4
+ * GitHub Plugin URI: Devinate/etsy-woocommerce-ai-importer
  *
  * @package Etsy_WooCommerce_AI_Importer
  *
  * Changelog:
+ * 1.2.0 - Added built-in GitHub updater for automatic plugin updates
+ *       - Plugin now checks GitHub releases for new versions
+ *       - One-click updates directly from WordPress admin
  * 1.1.0 - Added OOP structure with ImageSync, ProductImporter, and CategoryManager classes
  *       - Added automatic image synchronization for existing products
  *       - Improved code organization with separate class files in includes/ directory
@@ -31,6 +35,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Load the autoloader.
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-autoloader.php';
 EtsyWooCommerceAIImporter\Autoloader::register();
+
+// Initialize GitHub updater for automatic updates.
+if ( is_admin() ) {
+    new EtsyWooCommerceAIImporter\GitHubUpdater(
+        __FILE__,
+        'Devinate',
+        'etsy-woocommerce-ai-importer',
+        '1.2.0'
+    );
+}
 
 class Etsy_CSV_Importer {
 
