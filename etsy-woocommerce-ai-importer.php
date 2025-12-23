@@ -3,7 +3,7 @@
  * Plugin Name: Etsy WooCommerce AI Importer
  * Plugin URI: https://wordpress.org/plugins/etsy-woocommerce-ai-importer/
  * Description: Import digital products from Etsy CSV exports into WooCommerce with AI-powered category matching using Hugging Face.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Devinate
  * Author URI: https://devinate.com/
  * License: GPL-2.0-or-later
@@ -17,15 +17,45 @@
  * WC tested up to: 9.4
  *
  * @package Etsy_WooCommerce_AI_Importer
+ *
+ * Changelog:
+ * 1.1.0 - Added OOP structure with ImageSync, ProductImporter, and CategoryManager classes
+ *       - Added automatic image synchronization for existing products
+ *       - Improved code organization with separate class files in includes/ directory
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
+// Load the autoloader.
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-autoloader.php';
+EtsyWooCommerceAIImporter\Autoloader::register();
+
 class Etsy_CSV_Importer {
 
     private static $instance = null;
+
+    /**
+     * ImageSync instance.
+     *
+     * @var EtsyWooCommerceAIImporter\ImageSync
+     */
+    private $image_sync;
+
+    /**
+     * CategoryManager instance.
+     *
+     * @var EtsyWooCommerceAIImporter\CategoryManager
+     */
+    private $category_manager;
+
+    /**
+     * ProductImporter instance.
+     *
+     * @var EtsyWooCommerceAIImporter\ProductImporter
+     */
+    private $product_importer;
 
     /**
      * Get the singleton instance.
@@ -43,6 +73,14 @@ class Etsy_CSV_Importer {
      * Constructor.
      */
     private function __construct() {
+        // Initialize new OOP classes.
+        $this->image_sync       = new EtsyWooCommerceAIImporter\ImageSync();
+        $this->category_manager = new EtsyWooCommerceAIImporter\CategoryManager();
+        $this->product_importer = new EtsyWooCommerceAIImporter\ProductImporter(
+            $this->image_sync,
+            $this->category_manager
+        );
+
         add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
         add_action( 'wp_ajax_etsy_import_products', array( $this, 'ajax_import_products' ) );
@@ -55,7 +93,7 @@ class Etsy_CSV_Importer {
         add_action( 'woocommerce_process_product_meta', array( $this, 'save_etsy_meta_box' ) );
 
         // Background image import action (using Action Scheduler).
-        add_action( 'etsy_import_product_image', array( $this, 'process_single_image' ), 10, 3 );
+        add_action( 'etsy_import_product_image', array( $this->image_sync, 'process_single_image' ), 10, 3 );
 
         // Register GraphQL field for WPGraphQL integration.
         add_action( 'graphql_register_types', array( $this, 'register_graphql_fields' ) );
@@ -1095,7 +1133,7 @@ class Etsy_CSV_Importer {
                     $product_data['ai_categorized'] = ! isset( $ai_categories[ $index ]['skipped'] ); // New AI assignment.
                 } elseif ( empty( $product_data['taxonomy_path'] ) ) {
                     // Fallback to keyword matching (no AI).
-                    $category_result               = $this->match_category_keywords( $product_data['tags'], $product_data['title'] );
+                    $category_result               = $this->category_manager->match_category_keywords( $product_data['tags'], $product_data['title'] );
                     $product_data['taxonomy_path'] = $category_result['category'];
                     $product_data['category_log']  = $category_result['log'];
                 }
@@ -1126,7 +1164,12 @@ class Etsy_CSV_Importer {
                     }
                 } elseif ( $import_result['updated_existing'] ) {
                     $results['updated']++;
-                    $this->sse_send( 'log', array( 'type' => 'info', 'message' => "Updated existing product: {$product_data['title']}" ) );
+                    $results['images_queued'] += $import_result['images_queued'];
+                    $message = "Updated existing product: {$product_data['title']}";
+                    if ( ! empty( $import_result['images_synced'] ) ) {
+                        $message .= " (images synced: {$import_result['images_queued']} queued)";
+                    }
+                    $this->sse_send( 'log', array( 'type' => 'info', 'message' => $message ) );
                 } else {
                     $results['skipped']++;
                     $this->sse_send( 'log', array( 'type' => 'warning', 'message' => "Skipped: {$product_data['title']}" ) );
@@ -1983,13 +2026,27 @@ class Etsy_CSV_Importer {
     }
 
     /**
-     * Create a WooCommerce product from parsed data.
+     * Create or update a WooCommerce product from parsed data.
      *
+     * This method now delegates to the ProductImporter class.
+     *
+     * @param array $data    Product data.
+     * @param array $options Import options.
+     * @return array Result with product_id, images_queued, updated_existing, and images_synced.
+     */
+    private function create_product( $data, $options ) {
+        return $this->product_importer->import_product( $data, $options );
+    }
+
+    /**
+     * Legacy create_product method (kept for reference - can be removed).
+     *
+     * @deprecated 1.1.0 Use ProductImporter class instead.
      * @param array $data    Product data.
      * @param array $options Import options.
      * @return array Result with product_id, images_queued, and updated_existing.
      */
-    private function create_product( $data, $options ) {
+    private function legacy_create_product( $data, $options ) {
         $result = array(
             'product_id'       => null,
             'images_queued'    => 0,
