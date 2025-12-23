@@ -38,6 +38,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-autoloader.php';
 EtsyWooCommerceAIImporter\Autoloader::register();
 
+// Load GitHub updater manually to ensure it's available.
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-github-updater.php';
+
 // Initialize GitHub updater for automatic updates.
 if ( is_admin() ) {
     new EtsyWooCommerceAIImporter\GitHubUpdater(
