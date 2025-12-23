@@ -14,7 +14,7 @@
  * Requires PHP: 7.4
  * Requires Plugins: woocommerce
  * WC requires at least: 8.0
- * WC tested up to: 9.4
+ * WC tested up to: 10.4
  *
  * @package Etsy_WooCommerce_AI_Importer
  *
@@ -81,6 +81,9 @@ class Etsy_CSV_Importer {
             $this->category_manager
         );
 
+        // Declare WooCommerce HPOS compatibility.
+        add_action( 'before_woocommerce_init', array( $this, 'declare_hpos_compatibility' ) );
+
         add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
         add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
         add_action( 'wp_ajax_etsy_import_products', array( $this, 'ajax_import_products' ) );
@@ -97,6 +100,19 @@ class Etsy_CSV_Importer {
 
         // Register GraphQL field for WPGraphQL integration.
         add_action( 'graphql_register_types', array( $this, 'register_graphql_fields' ) );
+    }
+
+    /**
+     * Declare compatibility with WooCommerce features.
+     */
+    public function declare_hpos_compatibility() {
+        if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+            \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+                'custom_order_tables',
+                __FILE__,
+                true
+            );
+        }
     }
 
     /**
